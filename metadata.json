@@ -1,0 +1,6 @@
+{
+  "name": "Tic Tac Toe",
+  "description": "An interactive Tic Tac Toe game with user sign-in, multi-difficulty AI, local multiplayer, and detailed scorecards.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

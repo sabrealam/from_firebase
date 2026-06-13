@@ -1,0 +1,59 @@
+{
+  "entities": {
+    "PlayerProfile": {
+      "title": "PlayerProfile",
+      "description": "User profile containing gaming statistics and custom presets.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "username": { "type": "string" },
+        "avatar": { "type": "string" },
+        "color": { "type": "string" },
+        "theme": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "stats": {
+          "type": "object",
+          "properties": {
+            "wins": { "type": "number" },
+            "losses": { "type": "number" },
+            "draws": { "type": "number" },
+            "winStreak": { "type": "number" },
+            "maxStreak": { "type": "number" }
+          },
+          "required": ["wins", "losses", "draws", "winStreak", "maxStreak"]
+        }
+      },
+      "required": ["id", "username", "avatar", "color", "theme", "createdAt", "stats"]
+    },
+    "GameHistoryItem": {
+      "title": "GameHistoryItem",
+      "description": "Recorded scorecard of a completed Tic Tac Toe game match.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "player1Id": { "type": "string" },
+        "player1Name": { "type": "string" },
+        "player2Id": { "type": "string" },
+        "player2Name": { "type": "string" },
+        "winnerId": { "type": "string" },
+        "winnerName": { "type": "string" },
+        "mode": { "type": "string" },
+        "difficulty": { "type": "string" },
+        "totalMoves": { "type": "number" },
+        "durationSeconds": { "type": "number" },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["id", "player1Id", "player1Name", "player2Id", "player2Name", "winnerId", "winnerName", "mode", "totalMoves", "durationSeconds", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/players/{playerId}": {
+      "schema": "PlayerProfile",
+      "description": "Registered player profiles saving lifetime wins, losses, and streaks."
+    },
+    "/games/{gameId}": {
+      "schema": "GameHistoryItem",
+      "description": "Match card history of completed and logged duels."
+    }
+  }
+}

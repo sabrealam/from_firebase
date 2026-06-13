@@ -1,0 +1,74 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. Global safety net default deny Catch-All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- REUSABLE SECURITY PRIMITIVES AND HELPER FUNCTIONS ---
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // --- SCHEMAS VALIDATION BLUEPRINTS ---
+    
+    function isValidPlayerProfile(data) {
+      return data.keys().hasAll(['id', 'username', 'avatar', 'color', 'theme', 'createdAt', 'stats'])
+        && data.keys().size() == 7
+        && data.id is string && data.id.size() <= 128
+        && data.username is string && data.username.size() >= 1 && data.username.size() <= 15
+        && data.avatar is string && data.avatar.size() <= 10
+        && data.color is string && data.color.size() <= 64
+        && data.theme is string && data.theme.size() <= 32
+        && data.createdAt is int
+        && data.stats is map
+        && data.stats.keys().hasAll(['wins', 'losses', 'draws', 'winStreak', 'maxStreak'])
+        && data.stats.keys().size() == 5
+        && data.stats.wins is int && data.stats.wins >= 0
+        && data.stats.losses is int && data.stats.losses >= 0
+        && data.stats.draws is int && data.stats.draws >= 0
+        && data.stats.winStreak is int && data.stats.winStreak >= 0
+        && data.stats.maxStreak is int && data.stats.maxStreak >= 0;
+    }
+
+    function isValidGameHistoryItem(data) {
+      return data.keys().hasAll(['id', 'player1Id', 'player1Name', 'player2Id', 'player2Name', 'winnerId', 'winnerName', 'mode', 'totalMoves', 'durationSeconds', 'timestamp'])
+        && (data.keys().size() == 11 || (data.keys().size() == 12 && data.keys().hasAll(['difficulty'])))
+        && data.id is string && data.id.size() <= 128
+        && data.player1Id is string && data.player1Id.size() <= 128
+        && data.player1Name is string && data.player1Name.size() <= 15
+        && data.player2Id is string && data.player2Id.size() <= 128
+        && data.player2Name is string && data.player2Name.size() <= 15
+        && data.winnerId is string && data.winnerId.size() <= 128
+        && data.winnerName is string && data.winnerName.size() <= 32
+        && data.mode is string && (data.mode == 'ai' || data.mode == 'local')
+        && data.totalMoves is int && data.totalMoves >= 0 && data.totalMoves <= 9
+        && data.durationSeconds is int && data.durationSeconds >= 0
+        && data.timestamp is int;
+    }
+
+    // --- COLLECTION RULES MATCHES ---
+
+    match /players/{playerId} {
+      allow read: if true; // Publicly readable for leaderboard profiles representation
+      allow create: if isSignedIn() && isValidId(playerId) && request.resource.data.id == request.auth.uid && isValidPlayerProfile(request.resource.data);
+      allow update: if isSignedIn() && isValidId(playerId) && request.auth.uid == playerId && isValidPlayerProfile(request.resource.data)
+        && request.resource.data.createdAt == resource.data.createdAt; // Immutability of origin timestamp
+      allow delete: if isSignedIn() && request.auth.uid == playerId;
+    }
+
+    match /games/{gameId} {
+      allow read: if true; // Publicly readable for global or local match logs
+      allow create: if isSignedIn() && isValidId(gameId) && isValidGameHistoryItem(request.resource.data)
+        && (request.resource.data.player1Id == request.auth.uid || request.resource.data.player2Id == request.auth.uid);
+      // Games are immutable once submitted
+      allow update, delete: if false;
+    }
+  }
+}
